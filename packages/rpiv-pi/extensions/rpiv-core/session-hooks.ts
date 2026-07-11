@@ -29,7 +29,6 @@ import {
 	takeGitContextIfChanged,
 } from "./git-context.js";
 import { clearInjectionState, handleToolCallGuidance, injectRootGuidance, takeRootGuidance } from "./guidance.js";
-import { findMissingSiblings } from "./package-checks.js";
 import { injectPipelinePointer, PIPELINE_POINTER } from "./pipeline-pointer.js";
 import { isStaleCtxError } from "./utils.js";
 
@@ -69,13 +68,6 @@ const msgAgentsDrift = (parts: string[]) =>
 		"Run /rpiv-update-agents to sync.",
 	]);
 const msgAgentsErrors = (n: number) => `Agent sync reported ${n} error(s). Run /rpiv-update-agents for details.`;
-const msgMissingSiblings = (pkgs: string[]) =>
-	renderBanner(`rpiv-pi: ${pkgs.length} sibling extension${pkgs.length === 1 ? "" : "s"} missing`, [
-		...pkgs.map((p) => `• ${p}`),
-		"",
-		"Run /rpiv-setup to install them.",
-	]);
-
 type UI = { notify: (msg: string, sev: "info" | "warning" | "error") => void };
 
 // ---------------------------------------------------------------------------
@@ -144,7 +136,6 @@ async function onSessionStart(
 	if (ctx.hasUI) {
 		notifyCleanup(ctx.ui, cleanup);
 		notifyAgentSyncDrift(ctx.ui, agents);
-		warnMissingSiblings(ctx.ui);
 	}
 }
 
@@ -260,13 +251,4 @@ function notifyCleanup(ui: UI, result: CleanupResult): void {
 	if (result.errors.length > 0) {
 		ui.notify(`Agent cleanup reported ${result.errors.length} error(s)`, "warning");
 	}
-}
-
-function warnMissingSiblings(ui: UI): void {
-	const missing = findMissingSiblings();
-	if (missing.length === 0) return;
-	// Leading newline so Pi's "Warning: " severity prefix sits on its own
-	// line; every box row then gets Pi's 1-space continuation indent
-	// uniformly and the border stays aligned.
-	ui.notify(`\n${msgMissingSiblings(missing.map((m) => m.pkg.replace(/^npm:/, "")))}`, "warning");
 }

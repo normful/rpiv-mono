@@ -103,27 +103,6 @@ describe("session_start hook — notifications", () => {
 		expect(driftCall?.[1]).toBe("info");
 	});
 
-	it("warns about missing siblings with npm: prefix stripped", async () => {
-		vi.mocked(syncBundledAgents).mockReturnValueOnce(emptySync);
-		vi.mocked(findMissingSiblings).mockReturnValueOnce([
-			{ pkg: "npm:@juicesharp/rpiv-advisor", matches: /./, provides: "x" },
-			{ pkg: "npm:@juicesharp/rpiv-args", matches: /./, provides: "y" },
-		] as never);
-		const { pi, captured } = createMockPi({ exec: stubGitExec({}) as never });
-		registerSessionHooks(pi);
-		const ctx = createMockCtx({ cwd: projectDir, hasUI: true });
-		await captured.events.get("session_start")?.[0]({ reason: "startup" } as never, ctx as never);
-		const warnCall = (ctx.ui.notify as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[1] === "warning");
-		expect(warnCall).toBeDefined();
-		expect((warnCall![0] as string).startsWith("\n")).toBe(true);
-		expect(warnCall?.[0]).toContain("rpiv-pi: 2 sibling extensions missing");
-		expect(warnCall?.[0]).toContain("@juicesharp/rpiv-advisor");
-		expect(warnCall?.[0]).toContain("@juicesharp/rpiv-args");
-		expect(warnCall?.[0]).toContain("Run /rpiv-setup to install them.");
-		expect(warnCall?.[0]).toContain("╭");
-		expect(warnCall?.[0]).toContain("╯");
-		expect(warnCall?.[0]).not.toContain("npm:");
-	});
 
 	it("skips notifications when !hasUI", async () => {
 		vi.mocked(syncBundledAgents).mockReturnValueOnce({ ...emptySync, added: ["a.md"] });
