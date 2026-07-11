@@ -6,13 +6,11 @@
  */
 
 import { registerWorkflowCommand } from "./command.js";
-import { type DocsProtocolHost, registerDocsProtocol } from "./docs-protocol.js";
 import type { WorkflowHost } from "./host.js";
 
 /** Host ports the `default` needs; Pi's `ExtensionAPI` structurally satisfies both. */
-type ExtensionHost = WorkflowHost & DocsProtocolHost;
+type ExtensionHost = WorkflowHost;
 
 export default function (host: ExtensionHost): void {
 	registerWorkflowCommand(host);
-	registerDocsProtocol(host);
 }
