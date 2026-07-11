@@ -30,7 +30,6 @@ import {
 } from "./git-context.js";
 import { clearInjectionState, handleToolCallGuidance, injectRootGuidance, takeRootGuidance } from "./guidance.js";
 import { readLoadedSiblingSources } from "./loaded-siblings.js";
-import { findMissingSiblings, type LoadedSiblingSources } from "./package-checks.js";
 import { injectPipelinePointer, PIPELINE_POINTER } from "./pipeline-pointer.js";
 import { isStaleCtxError } from "./utils.js";
 
@@ -70,13 +69,6 @@ const msgAgentsDrift = (parts: string[]) =>
 		"Run /rpiv-update-agents to sync.",
 	]);
 const msgAgentsErrors = (n: number) => `Agent sync reported ${n} error(s). Run /rpiv-update-agents for details.`;
-const msgMissingSiblings = (pkgs: string[]) =>
-	renderBanner(`rpiv-pi: ${pkgs.length} sibling extension${pkgs.length === 1 ? "" : "s"} missing`, [
-		...pkgs.map((p) => `• ${p}`),
-		"",
-		"Run /rpiv-setup to install them.",
-	]);
-
 type UI = { notify: (msg: string, sev: "info" | "warning" | "error") => void };
 
 // ---------------------------------------------------------------------------
@@ -139,8 +131,8 @@ async function onSessionStart(
 	startupMaintenanceDone = true;
 
 	// One loaded-siblings snapshot for the whole maintenance pass (#216): every
-	// extension has registered by session_start, and cleanup, sync and the banner
-	// must agree on which siblings are present.
+	// extension has registered by session_start, and cleanup and sync must agree
+	// on which siblings are present.
 	const loaded = readLoadedSiblingSources(pi);
 	const cleanup = cleanupPerCwdAgents(ctx.cwd, loaded);
 	const agents = syncBundledAgents(false, loaded);
@@ -149,7 +141,6 @@ async function onSessionStart(
 	if (ctx.hasUI) {
 		notifyCleanup(ctx.ui, cleanup);
 		notifyAgentSyncDrift(ctx.ui, agents);
-		warnMissingSiblings(ctx.ui, loaded);
 	}
 }
 
@@ -265,13 +256,4 @@ function notifyCleanup(ui: UI, result: CleanupResult): void {
 	if (result.errors.length > 0) {
 		ui.notify(`Agent cleanup reported ${result.errors.length} error(s)`, "warning");
 	}
-}
-
-function warnMissingSiblings(ui: UI, loaded: LoadedSiblingSources): void {
-	const missing = findMissingSiblings(loaded);
-	if (missing.length === 0) return;
-	// Leading newline so Pi's "Warning: " severity prefix sits on its own
-	// line; every box row then gets Pi's 1-space continuation indent
-	// uniformly and the border stays aligned.
-	ui.notify(`\n${msgMissingSiblings(missing.map((m) => m.pkg.replace(/^npm:/, "")))}`, "warning");
 }
