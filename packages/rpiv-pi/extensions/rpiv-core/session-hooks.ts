@@ -29,7 +29,7 @@ import {
 	takeGitContextIfChanged,
 } from "./git-context.js";
 import { clearInjectionState, handleToolCallGuidance, injectRootGuidance, takeRootGuidance } from "./guidance.js";
-import { injectPipelinePointer, PIPELINE_POINTER } from "./pipeline-pointer.js";
+import { PIPELINE_POINTER } from "./pipeline-pointer.js";
 import { isStaleCtxError } from "./utils.js";
 
 /**
@@ -120,7 +120,6 @@ async function onSessionStart(
 	postCompactSessions.delete(ctx.sessionManager);
 	resetInjectionState();
 	injectRootGuidance(ctx.cwd, pi);
-	injectPipelinePointer(pi);
 	await injectGitContext(pi, (msg) => sendGitContextMessage(pi, msg));
 
 	// Injections above run every fire (each stage needs its own guidance + git

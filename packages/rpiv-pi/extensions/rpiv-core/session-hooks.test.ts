@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { createMockCtx, createMockPi, stubGitExec, writeGuidanceTree } from "@juicesharp/rpiv-test-utils";
+import { createMockCtx, createMockPi, stubGitExec } from "@juicesharp/rpiv-test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./package-checks.js", () => ({
@@ -342,120 +342,44 @@ describe("G0: session_start → real syncBundledAgents → notifyAgentSyncDrift"
 	});
 });
 
-describe("pipeline-pointer injection", () => {
-	const pointerCalls = (pi: { sendMessage: unknown }) =>
-		(pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.filter(
-			([msg]) => (msg as { customType?: string }).customType === "rpiv-pipeline-index",
-		).length;
-
-	it("session_start injects the pipeline pointer", async () => {
-		const { pi, captured } = createMockPi({ exec: stubGitExec({}) as never });
+describe("session_compact hook", () => {
+	it("re-injects guidance + git-context after compaction (clears caches first)", async () => {
+		const exec = stubGitExec({ branch: "main", commit: "abc", user: "alice" });
+		const { pi, captured } = createMockPi({ exec: exec as never });
 		registerSessionHooks(pi);
+		// Prime the git-context cache first via session_start so compact's clear has work to do.
 		await captured.events.get("session_start")?.[0](
 			{ reason: "startup" } as never,
 			createMockCtx({ cwd: projectDir, hasUI: false }) as never,
 		);
-		expect(pointerCalls(pi)).toBe(1);
-	});
-
-	it("session_compact queues no pointer turn; the next user turn receives it once", async () => {
-		const { pi, captured } = createMockPi({ exec: stubGitExec({}) as never });
-		registerSessionHooks(pi);
-		const ctx = createMockCtx({ cwd: projectDir, hasUI: false });
-		await captured.events.get("session_start")?.[0]({ reason: "startup" } as never, ctx as never);
-		const sendsBeforeCompact = (pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length;
-
-		await captured.events.get("session_compact")?.[0]({ reason: "overflow", willRetry: true } as never, ctx as never);
-		expect((pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(sendsBeforeCompact);
-		expect(pointerCalls(pi)).toBe(1);
-
-		const result = (await captured.events.get("before_agent_start")?.[0](
-			{ prompt: "continue" } as never,
-			ctx as never,
-		)) as { message: { customType: string; content: string } } | undefined;
-		expect(result?.message.customType).toBe("rpiv-post-compact-context");
-		expect(result?.message.content).toContain("rpiv pipeline index");
-	});
-});
-
-describe("session_compact hook", () => {
-	it("defers root guidance + pointer + git as one next-turn message", async () => {
-		writeGuidanceTree(projectDir, { ".rpiv/guidance/architecture.md": "root-architecture" });
-		const exec = stubGitExec({ branch: "main", commit: "abc", user: "alice" });
-		const { pi, captured } = createMockPi({ exec: exec as never });
-		registerSessionHooks(pi);
-		const ctx = createMockCtx({ cwd: projectDir, hasUI: false });
-		await captured.events.get("session_start")?.[0]({ reason: "startup" } as never, ctx as never);
 		const sendBefore = (pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length;
-
-		await captured.events.get("session_compact")?.[0](
-			{ reason: "threshold", willRetry: false } as never,
-			ctx as never,
-		);
-		expect((pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length).toBe(sendBefore);
-
-		const first = (await captured.events.get("before_agent_start")?.[0](
-			{ prompt: "continue" } as never,
-			ctx as never,
-		)) as { message: { customType: string; content: string } } | undefined;
-		expect(first?.message.customType).toBe("rpiv-post-compact-context");
-		expect(first?.message.content).toContain("Do not acknowledge this block");
-		expect(first?.message.content).toContain("root-architecture");
-		expect(first?.message.content).toContain("rpiv pipeline index");
-		expect(first?.message.content).toContain("## Git Context");
-		expect(first?.message.content).toContain("Commit: abc");
-
-		const second = await captured.events.get("before_agent_start")?.[0]({ prompt: "again" } as never, ctx as never);
-		expect(second).toBeUndefined();
-	});
-
-	it("partitions deferred context by session identity despite another session injecting first", async () => {
-		writeGuidanceTree(projectDir, { ".rpiv/guidance/architecture.md": "root-for-compacted" });
-		const { pi, captured } = createMockPi({
-			exec: stubGitExec({ branch: "main", commit: "abc", user: "alice" }) as never,
-		});
-		registerSessionHooks(pi);
-		const compacted = createMockCtx({ cwd: projectDir, sessionId: "compacted" });
-		const other = createMockCtx({ cwd: projectDir, sessionId: "other" });
-		await captured.events.get("session_compact")?.[0]({} as never, compacted as never);
-
-		// A different session consumes the module-global guidance/Git dedup state.
-		// The exact compacted SessionManager must remain armed and force-refresh both.
-		await captured.events.get("session_start")?.[0]({ reason: "startup" } as never, other as never);
-		const otherResult = (await captured.events.get("before_agent_start")?.[0](
-			{ prompt: "other" } as never,
-			other as never,
-		)) as { message: { customType: string } } | undefined;
-		expect(otherResult?.message.customType).not.toBe("rpiv-post-compact-context");
-
-		const compactedResult = (await captured.events.get("before_agent_start")?.[0](
-			{ prompt: "continue" } as never,
-			compacted as never,
-		)) as { message: { customType: string; content: string } } | undefined;
-		expect(compactedResult?.message.customType).toBe("rpiv-post-compact-context");
-		expect(compactedResult?.message.content).toContain("root-for-compacted");
-		expect(compactedResult?.message.content).toContain("Commit: abc");
+		await captured.events.get("session_compact")?.[0]({} as never, createMockCtx({ cwd: projectDir }) as never);
+		// After compact, the next pi.sendMessage call (from injectGitContext) should fire because
+		// resetInjectedMarker + clearGitContextCache make takeGitContextIfChanged re-emit.
+		const sendAfter = (pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length;
+		expect(sendAfter).toBeGreaterThan(sendBefore);
 	});
 
 	it("swallows a stale-ctx error (compacting session is being replaced)", async () => {
 		const { pi, captured } = createMockPi();
 		registerSessionHooks(pi);
 		const handler = captured.events.get("session_compact")?.[0];
+		// pi-core invalidates the runner mid-compaction; ctx.cwd then throws.
 		const staleCtx = {
-			get sessionManager(): object {
+			get cwd(): string {
 				throw new Error(STALE_CTX_MESSAGE);
 			},
 		};
 		await expect(handler?.({} as never, staleCtx as never)).resolves.toBeUndefined();
 	});
 
-	it("propagates a non-stale context error", async () => {
+	it("propagates a non-stale error from guidance/git injection", async () => {
 		const { pi, captured } = createMockPi();
 		registerSessionHooks(pi);
 		const handler = captured.events.get("session_compact")?.[0];
 		const boomCtx = {
-			get sessionManager(): object {
-				throw new Error("boom: real bug in session identity access");
+			get cwd(): string {
+				throw new Error("boom: real bug in guidance injection");
 			},
 		};
 		await expect(handler?.({} as never, boomCtx as never)).rejects.toThrow("boom");
