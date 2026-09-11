@@ -21,10 +21,10 @@ function throwingCtx(message: string) {
 const SEEDED = { tasks: [{ id: 1, subject: "keep me", status: "pending" }], nextId: 2 };
 const SID = "s1";
 
-function setup() {
+async function setup() {
 	__resetState();
 	const { pi, captured } = createMockPi();
-	registerTodo(pi);
+	await registerTodo(pi);
 	return { captured };
 }
 
@@ -33,7 +33,7 @@ afterEach(() => __resetState());
 
 describe.each(["session_compact", "session_tree"] as const)("%s — stale ctx handling", (event) => {
 	it("keeps current state on a stale ctx (replacement session replays)", async () => {
-		const { captured } = setup();
+		const { captured } = await setup();
 		replaceState(SID, SEEDED as never);
 		const handler = captured.events.get(event)?.[0];
 		await expect(handler?.({} as never, throwingCtx(STALE_CTX_MESSAGE) as never)).resolves.toBeUndefined();
@@ -42,7 +42,7 @@ describe.each(["session_compact", "session_tree"] as const)("%s — stale ctx ha
 	});
 
 	it("propagates a non-stale replay error", async () => {
-		const { captured } = setup();
+		const { captured } = await setup();
 		const handler = captured.events.get(event)?.[0];
 		await expect(handler?.({} as never, throwingCtx("boom: real replay bug") as never)).rejects.toThrow("boom");
 	});

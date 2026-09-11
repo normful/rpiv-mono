@@ -100,12 +100,15 @@ export function makeTodoOverlayLoader(
 //
 // The `/loader` subpath is used instead of the SDK entry so the i18n-ui +
 // pi-tui modules are not pulled into our load graph just to register strings.
-try {
-	const sdk = (await import("@juicesharp/rpiv-i18n/loader")) as I18nLoader;
-	sdk.registerLocalesFromDir(I18N_NAMESPACE, import.meta.url, { label: "rpiv-todo" });
-} catch {
-	// SDK absent — extension still loads with English-only UI.
-}
+// The import fires eagerly but does NOT block module evaluation (no top-level
+// await). By the time any handler runs, locale registration is complete.
+import("@juicesharp/rpiv-i18n/loader")
+	.then((sdk) => {
+		(sdk as I18nLoader).registerLocalesFromDir(I18N_NAMESPACE, import.meta.url, { label: "rpiv-todo" });
+	})
+	.catch(() => {
+		// SDK absent — extension still loads with English-only UI.
+	});
 
 // pi-core's ExtensionRunner throws this exact phrase from an invalidated ctx
 // proxy after session replacement/reload. Match the stable substring so genuine
