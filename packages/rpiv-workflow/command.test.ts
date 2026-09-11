@@ -568,17 +568,16 @@ describe("parseArgs — every leading/trailing permutation keeps the first-typed
 // ---------------------------------------------------------------------------
 
 describe("FLAG_EXTRACTORS — anchor invariant", () => {
-	it.each(FLAG_EXTRACTORS.map((f) => [f.token, f] as const))(
-		"%s: leading is ^-anchored, trailing is \\s+-prefixed and $-anchored",
-		(_token, f) => {
-			expect(f.leading.source.startsWith("^")).toBe(true);
-			expect(f.trailing.source.startsWith("\\s+")).toBe(true);
-			expect(f.trailing.source.endsWith("$")).toBe(true);
-			// Neither form is global/sticky — `exec` must be stateless across passes.
-			expect(f.leading.flags).toBe("");
-			expect(f.trailing.flags).toBe("");
-		},
-	);
+	it.each(
+		FLAG_EXTRACTORS.map((f) => [f.token, f] as const),
+	)("%s: leading is ^-anchored, trailing is \\s+-prefixed and $-anchored", (_token, f) => {
+		expect(f.leading.source.startsWith("^")).toBe(true);
+		expect(f.trailing.source.startsWith("\\s+")).toBe(true);
+		expect(f.trailing.source.endsWith("$")).toBe(true);
+		// Neither form is global/sticky — `exec` must be stateless across passes.
+		expect(f.leading.flags).toBe("");
+		expect(f.trailing.flags).toBe("");
+	});
 
 	it("keys and tokens are unique", () => {
 		expect(new Set(FLAG_EXTRACTORS.map((f) => f.key)).size).toBe(FLAG_EXTRACTORS.length);

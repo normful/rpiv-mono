@@ -2737,22 +2737,23 @@ describe("runWorkflow", () => {
 				expect(run.state.telemetry.backwardJumps).toBe(1);
 			});
 
-			it.each(["unchanged", "regressed", "unknown"] as const)(
-				"a %s verdict counts like a hook-less re-entry",
-				async (verdict) => {
-					const run = guardRun({ progress: () => verdict, maxBackwardJumps: 1 });
+			it.each([
+				"unchanged",
+				"regressed",
+				"unknown",
+			] as const)("a %s verdict counts like a hook-less re-entry", async (verdict) => {
+				const run = guardRun({ progress: () => verdict, maxBackwardJumps: 1 });
 
-					const g = await evaluateBackwardJumpGuard(run, "a");
+				const g = await evaluateBackwardJumpGuard(run, "a");
 
-					expect(g).toMatchObject({ kind: "re-entry" });
-					if (g.kind !== "re-entry") return;
-					expect(g.halt).toBeUndefined();
-					expect(g.note).toBe(`jump: counted (${verdict}) 1/1, lap 1/8`);
-					expect(run.revisits.get("a")).toBe(1);
-					expect(run.state.telemetry.backwardJumps).toBe(1);
-					expect(run.progressTrail.get("a")).toEqual([verdict]);
-				},
-			);
+				expect(g).toMatchObject({ kind: "re-entry" });
+				if (g.kind !== "re-entry") return;
+				expect(g.halt).toBeUndefined();
+				expect(g.note).toBe(`jump: counted (${verdict}) 1/1, lap 1/8`);
+				expect(run.revisits.get("a")).toBe(1);
+				expect(run.state.telemetry.backwardJumps).toBe(1);
+				expect(run.progressTrail.get("a")).toEqual([verdict]);
+			});
 
 			it('normalizes an off-union return to "unknown" on the trail', async () => {
 				const run = guardRun({

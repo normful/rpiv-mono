@@ -6853,33 +6853,33 @@ describe("build snapshot stages publish a prior sidecar off the plans channel (d
 		};
 	};
 
-	it.each([["plan-snapshot"], ["code-snapshot"]])(
-		"%s copies the plan bytes into .rpiv/artifacts/priors/ with role prior",
-		(stage) => {
-			const planBody = "---\nstatus: ready\n---\n# Plan\n\n## Phase 1: x\nbody\n";
-			mkdirSync(join(tmpDir, ".rpiv/artifacts/plans"), { recursive: true });
-			writeFileSync(join(tmpDir, REL), planBody);
-			const out = snapshotRun(stage)({
-				cwd: tmpDir,
-				input: undefined,
-				state: {
-					named: { plans: [{ artifacts: [{ handle: fsHandle(REL) }], data: undefined, kind: "", meta: {} }] },
-				} as unknown as RunView,
-			});
-			// Published on its OWN path under priors/, basename-keyed, role prior.
-			expect(out.kind).toBe("artifact-md");
-			expect(out.artifacts).toHaveLength(1);
-			expect(out.artifacts[0].role).toBe("prior");
-			expect(out.artifacts[0].handle.kind).toBe("fs");
-			// Per-round file published (round 1 here); the basename-keyed copy is written beside it.
-			expect(out.artifacts[0].handle.path).toBe(".rpiv/artifacts/priors/p.r1.md");
-			expect(readFileSync(join(tmpDir, ".rpiv/artifacts/priors/p.r1.md"), "utf-8")).toBe(planBody);
-			expect(out.data.snapshot_of).toBe(REL);
-			// The prior file is a byte copy of the plan — the pre-fix content the
-			// re-grade diffs against.
-			expect(readFileSync(join(tmpDir, ".rpiv/artifacts/priors/p.md"), "utf-8")).toBe(planBody);
-		},
-	);
+	it.each([
+		["plan-snapshot"],
+		["code-snapshot"],
+	])("%s copies the plan bytes into .rpiv/artifacts/priors/ with role prior", (stage) => {
+		const planBody = "---\nstatus: ready\n---\n# Plan\n\n## Phase 1: x\nbody\n";
+		mkdirSync(join(tmpDir, ".rpiv/artifacts/plans"), { recursive: true });
+		writeFileSync(join(tmpDir, REL), planBody);
+		const out = snapshotRun(stage)({
+			cwd: tmpDir,
+			input: undefined,
+			state: {
+				named: { plans: [{ artifacts: [{ handle: fsHandle(REL) }], data: undefined, kind: "", meta: {} }] },
+			} as unknown as RunView,
+		});
+		// Published on its OWN path under priors/, basename-keyed, role prior.
+		expect(out.kind).toBe("artifact-md");
+		expect(out.artifacts).toHaveLength(1);
+		expect(out.artifacts[0].role).toBe("prior");
+		expect(out.artifacts[0].handle.kind).toBe("fs");
+		// Per-round file published (round 1 here); the basename-keyed copy is written beside it.
+		expect(out.artifacts[0].handle.path).toBe(".rpiv/artifacts/priors/p.r1.md");
+		expect(readFileSync(join(tmpDir, ".rpiv/artifacts/priors/p.r1.md"), "utf-8")).toBe(planBody);
+		expect(out.data.snapshot_of).toBe(REL);
+		// The prior file is a byte copy of the plan — the pre-fix content the
+		// re-grade diffs against.
+		expect(readFileSync(join(tmpDir, ".rpiv/artifacts/priors/p.md"), "utf-8")).toBe(planBody);
+	});
 
 	it("throws haltPreflight when no plan is published on plans", () => {
 		expect(() =>
