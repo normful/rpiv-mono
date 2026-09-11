@@ -8,10 +8,10 @@ import { __resetState } from "./todo.js";
 // Capture the extension's registered handlers + tool + command. Each registerTodo()
 // call builds a fresh closure (fresh module-level `todoOverlay`), so isolation
 // between tests is automatic given __resetState() clears the store.
-function setup() {
+async function setup() {
 	__resetState();
 	const { pi, captured } = createMockPi();
-	registerTodo(pi);
+	await registerTodo(pi);
 	const sessionStart = captured.events.get("session_start")?.[0];
 	const sessionShutdown = captured.events.get("session_shutdown")?.[0];
 	const tool = captured.tools.get("todo");
@@ -28,7 +28,7 @@ afterEach(() => __resetState());
 
 describe("rpiv-todo — per-session todo store isolation (Phase 1 baseline)", () => {
 	it("a child session_start (empty branch) leaves the parent's committed task intact", async () => {
-		const { sessionStart, tool } = setup();
+		const { sessionStart, tool } = await setup();
 		const parent = createMockCtx({ sessionId: "parent", hasUI: true });
 		const child = createMockCtx({ sessionId: "child", hasUI: true });
 
@@ -52,7 +52,7 @@ describe("rpiv-todo — per-session todo store isolation (Phase 1 baseline)", ()
 	});
 
 	it("a child todo call mutates only the child's slot; the parent's /todos still shows only the parent's task", async () => {
-		const { sessionStart, tool, cmd } = setup();
+		const { sessionStart, tool, cmd } = await setup();
 		const parent = createMockCtx({ sessionId: "parent", hasUI: true });
 		const child = createMockCtx({ sessionId: "child", hasUI: true });
 
@@ -93,7 +93,7 @@ describe("rpiv-todo — per-session todo store isolation (Phase 1 baseline)", ()
 	});
 
 	it("the render pointer stays on the parent slot even after a child creates tasks (creator-ownership)", async () => {
-		const { sessionStart, tool } = setup();
+		const { sessionStart, tool } = await setup();
 		const parent = createMockCtx({ sessionId: "parent", hasUI: true });
 		const child = createMockCtx({ sessionId: "child", hasUI: true });
 
@@ -125,7 +125,7 @@ describe("rpiv-todo — per-session todo store isolation (Phase 1 baseline)", ()
 	});
 
 	it("session_shutdown evicts the shutting-down session's own slot (fresh EMPTY_STATE copy)", async () => {
-		const { sessionStart, sessionShutdown, tool } = setup();
+		const { sessionStart, sessionShutdown, tool } = await setup();
 		const parent = createMockCtx({ sessionId: "parent", hasUI: true });
 
 		await sessionStart({} as never, parent as never);
@@ -157,9 +157,9 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 		return ctx.ui.setWidget as unknown as ReturnType<typeof vi.fn>;
 	}
 
-	function setup() {
+	async function setup() {
 		const { pi, captured } = createMockPi();
-		registerTodo(pi);
+		await registerTodo(pi);
 		const start = captured.events.get("session_start")?.[0] as
 			| ((e: unknown, ctx: unknown) => Promise<void>)
 			| undefined;
@@ -174,7 +174,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	}
 
 	it("first hasUI session_start claims the foreground and renders its slot", async () => {
-		const { start, toolEnd, tool } = setup();
+		const { start, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 
 		await start?.({}, parentCtx);
@@ -196,7 +196,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("a child session_start (distinct sid, hasUI) does not claim foreground or rebind the overlay", async () => {
-		const { start, toolEnd, tool } = setup();
+		const { start, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 		const childCtx = createMockCtx({ hasUI: true, sessionId: CHILD });
 
@@ -221,7 +221,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("a child todo call writes the child's slot; the overlay still shows the parent's todos", async () => {
-		const { start, toolEnd, tool } = setup();
+		const { start, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 		const childCtx = createMockCtx({ hasUI: true, sessionId: CHILD });
 
@@ -252,7 +252,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("a child session_shutdown does not dispose the foreground overlay", async () => {
-		const { start, shutdown, toolEnd, tool } = setup();
+		const { start, shutdown, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 		const childCtx = createMockCtx({ hasUI: true, sessionId: CHILD });
 
@@ -276,7 +276,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("the foreground's own session_shutdown disposes the overlay and clears foreground", async () => {
-		const { start, shutdown, toolEnd, tool } = setup();
+		const { start, shutdown, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 
 		await start?.({}, parentCtx);
@@ -298,7 +298,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("foreground shutdown still clears the pointer + evicts the slot when dispose() throws (try/finally)", async () => {
-		const { start, shutdown, toolEnd, tool } = setup();
+		const { start, shutdown, toolEnd, tool } = await setup();
 		const parentCtx = createMockCtx({ hasUI: true, sessionId: PARENT });
 		// dispose()'s first act is setWidget(KEY, undefined); simulate a stale ui
 		// proxy by throwing there (registration passes a factory fn → no throw).
@@ -325,7 +325,7 @@ describe("rpiv-todo — foreground overlay policy (Slice 2)", () => {
 	});
 
 	it("a headless launcher (hasUI:false) never constructs an overlay, nor does a headless child", async () => {
-		const { start } = setup();
+		const { start } = await setup();
 		const headlessCtx = createMockCtx({ hasUI: false, sessionId: PARENT });
 		const childHeadlessCtx = createMockCtx({ hasUI: false, sessionId: CHILD });
 
