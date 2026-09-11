@@ -126,8 +126,8 @@ describe("/advisor — non-reasoning model", () => {
 });
 
 describe("/advisor — reasoning model", () => {
-	it("offers max when the selected model reports support", async () => {
-		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "low", "medium", "high", "max"]);
+	it("offers xhigh when the selected model reports support", async () => {
+		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "low", "medium", "high", "xhigh"]);
 		vi.mocked(showAdvisorPicker).mockResolvedValueOnce("openai/gpt-max");
 		vi.mocked(showEffortPicker).mockResolvedValueOnce(null);
 		const { captured } = register();
@@ -136,21 +136,13 @@ describe("/advisor — reasoning model", () => {
 		await captured.commands.get("advisor")?.handler("", ctx as never);
 
 		const values = vi.mocked(showEffortPicker).mock.calls[0]?.[1].map((item) => item.value);
-		expect(values).toContain("max");
+		expect(values).toContain("xhigh");
 		expect(values?.[0]).toBe("__off__");
 		expect(values).not.toContain("off");
 	});
 
-	it("offers the full graded tail (xhigh, max) and labels the off row", async () => {
-		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce([
-			"off",
-			"minimal",
-			"low",
-			"medium",
-			"high",
-			"xhigh",
-			"max",
-		]);
+	it("offers the full graded tail and labels the off row", async () => {
+		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "minimal", "low", "medium", "high", "xhigh"]);
 		vi.mocked(showAdvisorPicker).mockResolvedValueOnce("openai/gpt-max");
 		vi.mocked(showEffortPicker).mockResolvedValueOnce(null);
 		const { captured } = register();
@@ -159,7 +151,7 @@ describe("/advisor — reasoning model", () => {
 		await captured.commands.get("advisor")?.handler("", ctx as never);
 
 		const items = vi.mocked(showEffortPicker).mock.calls[0]?.[1];
-		expect(items?.map((item) => item.value)).toEqual(["__off__", "minimal", "low", "medium", "high", "xhigh", "max"]);
+		expect(items?.map((item) => item.value)).toEqual(["__off__", "minimal", "low", "medium", "high", "xhigh"]);
 		expect(items?.[0]?.label).toBe("off (no reasoning sent)");
 	});
 

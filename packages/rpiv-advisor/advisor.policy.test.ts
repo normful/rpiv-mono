@@ -53,14 +53,13 @@ describe("isModelBlocked", () => {
 	it("never blocks on an out-of-ordinal minEffort, even with an unknown executor level", () => {
 		setDisabledForModels([{ model: "anthropic:sonnet", minEffort: "ultra" as never }]);
 		expect(isModelBlocked(sonnet, "ultra")).toBe(false);
-		expect(isModelBlocked(sonnet, "max")).toBe(false);
+		expect(isModelBlocked(sonnet, "xhigh")).toBe(false);
 		expect(isModelBlocked(sonnet)).toBe(false);
 	});
 
 	it("returns true when executor effort above threshold", () => {
 		setDisabledForModels([{ model: "anthropic:sonnet", minEffort: "high" }]);
 		expect(isModelBlocked(sonnet, "xhigh")).toBe(true);
-		expect(isModelBlocked(sonnet, "max")).toBe(true);
 	});
 
 	it("returns false when executor effort below threshold", () => {

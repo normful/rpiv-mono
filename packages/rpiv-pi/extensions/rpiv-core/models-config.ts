@@ -29,7 +29,7 @@ import { type Static, Type } from "typebox";
 // ---------------------------------------------------------------------------
 
 /** The graded reasoning levels (excludes "off"). */
-export const THINKING_LEVEL_VALUES = ["minimal", "low", "medium", "high", "xhigh", "max"] as const;
+export const THINKING_LEVEL_VALUES = ["minimal", "low", "medium", "high", "xhigh"] as const;
 export type ThinkingLevelValue = (typeof THINKING_LEVEL_VALUES)[number];
 
 /** All persistable thinking values, including the explicit "off" (disable reasoning). */
@@ -77,9 +77,8 @@ const ThinkingLevelSchema = Type.Union(
 		Type.Literal("medium"),
 		Type.Literal("high"),
 		Type.Literal("xhigh"),
-		Type.Literal("max"),
 	] as const,
-	{ description: "Effort/thinking level: off | minimal | low | medium | high | xhigh | max" },
+	{ description: "Effort/thinking level: off | minimal | low | medium | high | xhigh" },
 );
 
 // Guard: schema literals must stay in lockstep with MODEL_THINKING_LEVEL_VALUES.

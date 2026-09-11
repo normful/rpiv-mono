@@ -262,13 +262,20 @@ describe("models-config", () => {
 			expect(loadModelsConfig().agents!["test-agent"]).toEqual({ model: "openai/gpt-5.5", thinking: "off" });
 		});
 
-		it("accepts Pi's 'max' thinking level", () => {
+		it("drops Pi's removed 'max' thinking level with a warn (fail-soft)", () => {
+			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
 			writeFileSync(
 				configFilePath,
 				JSON.stringify({ agents: { "test-agent": { model: "openai/gpt-5.5", thinking: "max" } } }),
 				"utf-8",
 			);
-			expect(loadModelsConfig().agents!["test-agent"]).toEqual({ model: "openai/gpt-5.5", thinking: "max" });
+
+			const config = loadModelsConfig();
+			expect(config.agents!["test-agent"].thinking).toBeUndefined();
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("unknown thinking level"));
+
+			warnSpy.mockRestore();
 		});
 
 		it("cascades defaults.thinking 'off' into a model-only entry", () => {

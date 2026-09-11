@@ -130,16 +130,16 @@ describe("items — builders", () => {
 		expect(items.length).toBeGreaterThanOrEqual(1);
 	});
 
-	it("buildEffortItems offers max only when the selected model supports it", () => {
+	it("buildEffortItems offers xhigh only when the selected model supports it", () => {
 		const reasoningModel = model("openai", "gpt", "GPT", true);
 
-		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "minimal", "low", "medium", "high", "max"]);
-		const withMax = buildEffortItems(reasoningModel).map((item) => item.value);
-		expect(withMax).toContain("max");
+		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "minimal", "low", "medium", "high", "xhigh"]);
+		const withXhigh = buildEffortItems(reasoningModel).map((item) => item.value);
+		expect(withXhigh).toContain("xhigh");
 
 		vi.mocked(getSupportedThinkingLevels).mockReturnValueOnce(["off", "minimal", "low", "medium", "high"]);
-		const withoutMax = buildEffortItems(reasoningModel).map((item) => item.value);
-		expect(withoutMax).not.toContain("max");
+		const withoutXhigh = buildEffortItems(reasoningModel).map((item) => item.value);
+		expect(withoutXhigh).not.toContain("xhigh");
 	});
 
 	it("loadRawConfig returns an object (fail-soft to {} when no file exists)", () => {

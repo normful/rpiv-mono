@@ -20,7 +20,7 @@ export const OFF_VALUE = "__off__";
 // excludes "off" (the Exclude is a defensive no-op); the alias keeps that
 // exclusion structural if the upstream universe ever re-widens.
 export type GradedEffort = Exclude<ThinkingLevel, "off">;
-export const EFFORT_ORDINAL: readonly GradedEffort[] = ["minimal", "low", "medium", "high", "xhigh", "max"];
+export const EFFORT_ORDINAL: readonly GradedEffort[] = ["minimal", "low", "medium", "high", "xhigh"];
 export const DEFAULT_EFFORT: GradedEffort = "high";
 export const RECOMMENDED_EFFORT_SUFFIX = "  (recommended)";
 
