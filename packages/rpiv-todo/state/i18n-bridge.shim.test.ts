@@ -39,7 +39,8 @@ const STATIC_IMPORT = new RegExp(
 	String.raw`^\s*import\s+(?:type\s+)?[\w{},\s*]+\s+from\s+["']${SDK_SPECIFIER_PATTERN}["']`,
 	"m",
 );
-const DYNAMIC_IMPORT = new RegExp(String.raw`await\s+import\s*\(\s*["']${SDK_SPECIFIER_PATTERN}["']\s*\)`);
+const DYNAMIC_IMPORT = new RegExp(String.raw`import\s*\(\s*["']${SDK_SPECIFIER_PATTERN}["']\s*\)`);
+const CATCH_HANDLER = /\.catch\s*\(\s*\(\)\s*=>/;
 
 describe("i18n soft-peer shim — source shape", () => {
 	it("bridge does not statically import the rpiv-i18n SDK", () => {
@@ -47,15 +48,14 @@ describe("i18n soft-peer shim — source shape", () => {
 		expect(src).not.toMatch(STATIC_IMPORT);
 	});
 
-	it("bridge uses await import() for the rpiv-i18n SDK", () => {
+	it("bridge uses a dynamic import() for the rpiv-i18n SDK (non-blocking, no top-level await)", () => {
 		const src = readFileSync(BRIDGE, "utf8");
 		expect(src).toMatch(DYNAMIC_IMPORT);
 	});
 
-	it("bridge guards the dynamic import with try/catch", () => {
+	it("bridge attaches a .catch() fallback to the dynamic import", () => {
 		const src = readFileSync(BRIDGE, "utf8");
-		// Both keywords must be present and the catch must follow the try.
-		expect(src).toMatch(/\btry\s*\{[\s\S]*?\bcatch\b/);
+		expect(src).toMatch(CATCH_HANDLER);
 	});
 
 	it("entry point does not statically import the rpiv-i18n SDK", () => {
@@ -63,14 +63,14 @@ describe("i18n soft-peer shim — source shape", () => {
 		expect(src).not.toMatch(STATIC_IMPORT);
 	});
 
-	it("entry point uses await import() for the rpiv-i18n SDK", () => {
+	it("entry point uses a dynamic import() for the rpiv-i18n/loader SDK (non-blocking, no top-level await)", () => {
 		const src = readFileSync(ENTRY, "utf8");
 		expect(src).toMatch(DYNAMIC_IMPORT);
 	});
 
-	it("entry point guards the dynamic import with try/catch", () => {
+	it("entry point attaches a .catch() fallback to the dynamic import", () => {
 		const src = readFileSync(ENTRY, "utf8");
-		expect(src).toMatch(/\btry\s*\{[\s\S]*?\bcatch\b/);
+		expect(src).toMatch(CATCH_HANDLER);
 	});
 });
 

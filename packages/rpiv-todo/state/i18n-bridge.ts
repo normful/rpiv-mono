@@ -29,21 +29,23 @@ type I18nSDK = { scope: (namespace: string) => ScopeFn };
 // Prefer the live SDK if installed: closures it returns track the active
 // locale, so /languages picker propagates to our render call sites. If the
 // SDK isn't installed (standalone install of this extension without
-// rpiv-i18n), the dynamic import fails, every t(key, fallback) returns the
-// canonical English literal, and the extension stays online.
+// rpiv-i18n), the dynamic import fails, and every t(key, fallback) returns the
+// canonical English literal (the fallback passthrough below).
 //
-// Top-level await is required so a synchronous `t(...)` call from any
-// downstream module sees the resolved scope; ESM module loading awaits this
-// before evaluating any importer.
-let scopeImpl: ScopeFn;
-try {
-	const sdk = (await import("@juicesharp/rpiv-i18n")) as I18nSDK;
-	scopeImpl = sdk.scope(I18N_NAMESPACE);
-} catch {
-	scopeImpl = (_key, fallback) => fallback;
-}
+// The import fires eagerly but does NOT block module evaluation (no top-level
+// await). By the time any handler code calls t(), the import has resolved; in
+// the unlikely race, the English fallback is returned — identical to the
+// SDK-absent behavior.
+let scopeImpl: ScopeFn = (_key, fallback) => fallback;
+import("@juicesharp/rpiv-i18n")
+	.then((sdk) => {
+		scopeImpl = (sdk as I18nSDK).scope(I18N_NAMESPACE);
+	})
+	.catch(() => {
+		// SDK absent — fallback passthrough already set
+	});
 
-export const t: ScopeFn = scopeImpl;
+export const t: ScopeFn = (key, fallback) => scopeImpl(key, fallback);
 
 const STATUS_LABEL_PENDING = "pending";
 const STATUS_LABEL_IN_PROGRESS = "in progress";
