@@ -82,56 +82,41 @@ export interface TaskMutationParams {
 }
 
 // ---------------------------------------------------------------------------
-// TypeBox parameter schema — every `description` doubles as LLM-facing prompt
-// copy. Field order and wording are pinned by registration tests.
+// TypeBox parameter schema. `description` is LLM-facing prompt copy, so it is
+// omitted wherever the parameter name already says it. Only hints the name
+// cannot carry stay: requiredness, `status`'s update/list dual role, and
+// `metadata`'s null-deletes-a-key rule.
 // ---------------------------------------------------------------------------
 
 export const TodoParamsSchema = Type.Object({
 	action: StringEnum(["create", "update", "list", "get", "delete", "clear"] as const),
-	subject: Type.Optional(Type.String({ description: "Task subject line (required for create)" })),
-	description: Type.Optional(Type.String({ description: "Long-form task description" })),
+	subject: Type.Optional(Type.String({ description: "Required for create" })),
+	description: Type.Optional(Type.String()),
 	activeForm: Type.Optional(
 		Type.String({
-			description: "Present-continuous spinner label shown while status is in_progress (e.g. 'writing tests')",
+			description: "Present-continuous label shown while in_progress",
 		}),
 	),
 	status: Type.Optional(
 		StringEnum(["pending", "in_progress", "completed", "deleted"] as const, {
-			description:
-				"Set this task's status (update): one of pending, in_progress, completed, deleted. When action is list, filters returned tasks by this status.",
+			description: "Set with update; filters with list",
 		}),
 	),
-	blockedBy: Type.Optional(
-		Type.Array(Type.Number(), {
-			description: "Initial blockedBy ids (create only)",
-		}),
-	),
-	addBlockedBy: Type.Optional(
-		Type.Array(Type.Number(), {
-			description: "Task ids to add to blockedBy (update only, additive merge)",
-		}),
-	),
-	removeBlockedBy: Type.Optional(
-		Type.Array(Type.Number(), {
-			description: "Task ids to remove from blockedBy (update only, additive merge)",
-		}),
-	),
-	owner: Type.Optional(Type.String({ description: "Agent/owner assigned to this task" })),
+	blockedBy: Type.Optional(Type.Array(Type.Number())),
+	addBlockedBy: Type.Optional(Type.Array(Type.Number())),
+	removeBlockedBy: Type.Optional(Type.Array(Type.Number())),
+	owner: Type.Optional(Type.String()),
 	metadata: Type.Optional(
 		Type.Record(Type.String(), Type.Unknown(), {
-			description: "Arbitrary metadata; pass null value for a key to delete that key on update",
+			description: "Merged into existing keys on update; a null value deletes that key",
 		}),
 	),
 	id: Type.Optional(
 		Type.Number({
-			description: "Task id (required for update, get, delete)",
+			description: "Required for update, get, delete",
 		}),
 	),
-	includeDeleted: Type.Optional(
-		Type.Boolean({
-			description: "If true, list action returns deleted (tombstoned) tasks as well. Default: false.",
-		}),
-	),
+	includeDeleted: Type.Optional(Type.Boolean()),
 });
 
 export type TodoParams = Static<typeof TodoParamsSchema>;

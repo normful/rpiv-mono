@@ -58,7 +58,7 @@ export interface TaskDetails {
 ## Types Surface
 - `TaskAction = "create" | "update" | "list" | "get" | "delete" | "clear"`
 - `TaskStatus = "pending" | "in_progress" | "completed" | "deleted"`
-- `TodoParamsSchema` enumerates the action via `StringEnum`, plus optional `subject/description/activeForm/status/blockedBy/addBlockedBy/removeBlockedBy/owner/metadata/id/includeDeleted` — every field's `description` is LLM-facing prompt copy
+- `TodoParamsSchema` enumerates the action via `StringEnum`, plus optional `subject/description/activeForm/status/blockedBy/addBlockedBy/removeBlockedBy/owner/metadata/id/includeDeleted` — `description` is LLM-facing prompt copy and is omitted wherever the parameter name already carries the meaning (only requiredness, `status`'s update/list dual role, and `metadata`'s null rule keep one)
 
 ## Symmetry with `rpiv-ask-user-question/tool/`
 Both packages share the `{ content: [{ type:"text", text }], details }` envelope contract and the TypeBox-params + types split. **Divergence**: todo is leaner (only schema + envelope) because state lives in `../state/`; AUQ's tool layer adds `format-answer.ts` and `validate-questionnaire.ts` because its surface is richer.

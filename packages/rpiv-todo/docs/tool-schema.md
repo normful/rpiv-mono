@@ -156,7 +156,7 @@ carries the bare message. Task state is unchanged.
 
 ## Prompt guidance
 
-The tool ships a `promptSnippet` and eight `promptGuidelines` bullets telling the
+The tool ships a `promptSnippet` and `promptGuidelines` bullets telling the
 model when to open a list, to keep exactly one task `in_progress`, to mark work
 completed immediately rather than in batches, never to complete a task with
 failing tests, and the literal `update {id, status}` call shape for changing a

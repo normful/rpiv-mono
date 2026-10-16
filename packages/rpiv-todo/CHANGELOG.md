@@ -5,6 +5,12 @@ All notable changes to `@juicesharp/rpiv-todo` are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Leaner prompt copy.** The `todo` tool's description, the built-in prompt guidelines, and the parameter-schema descriptions are much shorter — the schema descriptions that only restated the parameter name are gone. Hints a name cannot carry (requiredness, `status`'s update/list dual role, `metadata`'s null-deletes-a-key rule) are unchanged. No behavior change.
+
 ## [2.13.8] - 2026-10-12
 
 ## [2.13.7] - 2026-10-12

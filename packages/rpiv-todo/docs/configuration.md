@@ -87,8 +87,8 @@ Examples: `alt+o`, `ctrl+shift+t`, `super+alt+f5`.
 
 `guidance.promptSnippet` (string) and `guidance.promptGuidelines` (array of
 strings) replace the prompt copy the `todo` tool advertises to the model. Both
-are absent by default, in which case the built-in snippet and the eight built-in
-guideline bullets are used.
+are absent by default, in which case the built-in snippet and guideline bullets
+are used.
 
 - `promptSnippet` must be a non-empty string; an empty string or a wrong type
   falls back to the default.
