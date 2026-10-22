@@ -9,7 +9,7 @@ vi.mock("./models-config-sources.js", () => ({
 	loadWorkflowMap: vi.fn(async () => ({ build: ["research", "plan"] })),
 }));
 
-import { loadWorkflowMap } from "./models-config-sources.js";
+import { loadWorkflowMap, skillCommandNames } from "./models-config-sources.js";
 import { registerModelsConfigValidation } from "./models-config-validate.js";
 
 function writeModels(config: unknown) {
@@ -115,17 +115,32 @@ describe("models-config-validate — session_start warn-on-miss", () => {
 		warn.mockRestore();
 	});
 
-	it("skips a configured axis whose known-list is empty without throwing", async () => {
-		// Defensive: empty agent registry should not crash; unknown agent key is
-		// reported (empty known-list still validates — every key is unknown).
+	it("skips an axis whose known-list is empty (universe undetermined) without throwing", async () => {
+		// rpiv-workflow absent → `loadWorkflows` returns an empty map rather than
+		// throwing, and a session with no skills loaded (`--no-skills`, failed
+		// discovery) is an empty skill registry. Neither is grounds for reporting
+		// every configured key as unknown.
 		vi.mocked(loadWorkflowMap).mockResolvedValue({});
+		vi.mocked(skillCommandNames).mockReturnValueOnce([]);
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-		writeModels({ stages: { research: "a/b" } });
+		writeModels({ stages: { research: "a/b" }, skills: { commit: "a/b" } });
+		const { pi, fire } = makePi();
+		registerModelsConfigValidation(pi);
+		await expect(fire()).resolves.toBeUndefined();
+		expect(warn).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
+	it("stays silent when the skill registry is empty", async () => {
+		// The reported flood: `models.json` carries per-skill overrides, the
+		// session loaded no skills, so every key looked like a typo.
+		vi.mocked(skillCommandNames).mockReturnValueOnce([]);
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		writeModels({ skills: { commit: "a/b", design: "a/b", plan: "a/b" } });
 		const { pi, fire } = makePi();
 		registerModelsConfigValidation(pi);
 		await fire();
-		// `research` is not in the empty workflow map → flagged.
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining("stages.research"));
+		expect(warn).not.toHaveBeenCalled();
 		warn.mockRestore();
 	});
 });

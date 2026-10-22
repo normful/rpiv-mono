@@ -644,6 +644,24 @@ describe("models-config", () => {
 			expect(findUnknownModelKeys(config, { agents: ["codebase-analyzer"], skills: ["commit"] })).toEqual([]);
 		});
 
+		it("skips an axis whose known-list is empty (universe undetermined)", () => {
+			const config: ModelsConfig = {
+				agents: { "codebase-analyzer": { model: "a/b" } },
+				stages: { research: { model: "a/b" } },
+				skills: { commit: { model: "a/b" } },
+				presets: { ship: { stages: { research: { model: "a/b" } } } },
+			};
+			expect(
+				findUnknownModelKeys(config, {
+					agents: [],
+					stages: [],
+					skills: [],
+					workflows: [],
+					stagesByWorkflow: {},
+				}),
+			).toEqual([]);
+		});
+
 		it("ignores defaults (no key to validate)", () => {
 			const config: ModelsConfig = { defaults: { model: "a/b" } };
 			expect(findUnknownModelKeys(config, known)).toEqual([]);

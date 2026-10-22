@@ -461,9 +461,11 @@ export function resolveMaxConcurrency(config: ModelsConfig): number {
 /**
  * Known valid keys per axis, supplied by the call site that can determine them
  * (bundled-agent readdir, skill registry, workflow loader). An axis whose list
- * is `undefined` is SKIPPED — its key universe couldn't be determined (e.g.
- * rpiv-workflow absent → `stages`/`workflows` unknown), so its configured keys
- * are never falsely reported as unknown.
+ * is `undefined` OR EMPTY is SKIPPED — an empty list means the key universe
+ * could not be determined (rpiv-workflow absent → `stages`/`workflows` unknown;
+ * a session with no skills loaded → skill registry empty; unreadable
+ * bundled-agent dir), never that no key is valid, so its configured keys are
+ * never falsely reported as unknown.
  */
 export interface KnownModelKeys {
 	agents?: readonly string[];
@@ -478,9 +480,9 @@ export interface KnownModelKeys {
  * e.g. `skills.committ`, `agents.codebase-analzyer`, `presets.buildd`,
  * `presets.build.stages.plann`. Record-key typos pass TypeBox validation
  * (records are structurally dynamic) and silently fall through to the defaults
- * cascade; this surfaces them. Axes with an `undefined` known-list are skipped;
- * an unknown preset workflow short-circuits (its inner stages aren't validated
- * against an absent stage list).
+ * cascade; this surfaces them. Axes whose known-list is `undefined` or empty
+ * are skipped; an unknown preset workflow short-circuits (its inner stages
+ * aren't validated against an absent stage list).
  */
 export function findUnknownModelKeys(config: ModelsConfig, known: KnownModelKeys): string[] {
 	const unknown: string[] = [];
@@ -489,7 +491,7 @@ export function findUnknownModelKeys(config: ModelsConfig, known: KnownModelKeys
 		valid: readonly string[] | undefined,
 		prefix: string,
 	): void => {
-		if (!obj || !valid) return;
+		if (!obj || !valid || valid.length === 0) return;
 		const set = new Set(valid);
 		for (const key of Object.keys(obj)) {
 			if (!set.has(key)) unknown.push(`${prefix}.${key}`);
@@ -500,7 +502,7 @@ export function findUnknownModelKeys(config: ModelsConfig, known: KnownModelKeys
 	check(config.stages, known.stages, "stages");
 	check(config.skills, known.skills, "skills");
 
-	if (config.presets && known.workflows) {
+	if (config.presets && known.workflows && known.workflows.length > 0) {
 		const wfSet = new Set(known.workflows);
 		for (const [wf, block] of Object.entries(config.presets)) {
 			if (!wfSet.has(wf)) {
